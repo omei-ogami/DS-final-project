@@ -10,10 +10,35 @@
 using namespace std;
 
 // data
+int total;
 unordered_map<int, string> TITLE;
 unordered_map<int, unordered_set<string>> words;
+// matches
+unordered_map<string, unordered_set<int>> exact;
 
-// Utility Func
+//////////////////////////////////////////////////////////////////////// 
+// Exact search
+////////////////////////////////////////////////////////////////////////
+
+unordered_set<int> exact_search(string& target){
+
+	// check history
+	if(exact.find(target) == exact.end()){
+
+		// search through the map
+		unordered_set<int> temp;
+		for(int i=0 ; i<total ; i++){
+			if(words[i].find(target) != words[i].end()) temp.insert(i);
+		}
+		exact.emplace(target, temp);
+	}
+
+	return exact[target];
+}
+
+//////////////////////////////////////////////////////////////////////// 
+// Utility Func (Parsing)
+////////////////////////////////////////////////////////////////////////
 
 // string parser : output vector of strings (words) after parsing
 vector<string> word_parse(vector<string> tmp_string){
@@ -49,6 +74,9 @@ vector<string> split(const string& str, const string& delim) {
 	return res;
 }
 
+//////////////////////////////////////////////////////////////////////// 
+// main function
+////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[])
 {
@@ -118,6 +146,20 @@ int main(int argc, char *argv[])
 		fi.close();
 		data_id++;
 	}
+
+	total = data_id;
+
+	// query
+	string path = query + ".txt", request;
+	fi.open(path, ios::in);
+	while(getline(fi, request)){
+		unordered_set<int> res = exact_search(request);
+		for(auto &id : res){
+			cout << TITLE[id] << endl;
+		}
+		cout << "======================" << endl;
+	}
+	fi.close();
 }
 
 

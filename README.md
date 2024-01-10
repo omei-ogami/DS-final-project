@@ -2,7 +2,7 @@ TODO
 ---
 
 - [x] Parsing
-- [ ] Exact Search
+- [x] Exact Search
 - [ ] Prefix Search
 - [ ] Suffix Search
 - [ ] Wildcard Search
