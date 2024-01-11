@@ -6,15 +6,76 @@
 #include<unordered_map>
 #include<unordered_set>
 #include<iostream>
+#include<time.h>
 
 using namespace std;
 
-// data
+//////////////////////////////////////////////////////////////////////// 
+// Definition of Trie
+////////////////////////////////////////////////////////////////////////
+
+// trie node
+struct TrieNode{
+	string prefix = "";
+	vector<TrieNode*> next = std::vector<TrieNode*>(26, nullptr);
+	unordered_set<int> S = {};
+	bool isWord = false;
+
+	TrieNode(string prefix) : prefix(prefix) {}
+};
+
+// class for trie
+class Trie{
+public:
+
+	Trie() {}
+
+	~Trie() {}
+
+	// get root
+	TrieNode* getRoot(){
+		return root;
+	}
+
+	// insert operation
+	void insert(string& word, TrieNode* cur, int i, int n, int id){
+		if(i == n) return;
+		int c = word[i] - 'a';
+		if(!cur->next[c]){
+			cur->next[c] = new TrieNode(word.substr(0, i+1));
+			cur->next[c]->isWord = (i == n-1)? true : false;
+		}
+		cur->next[c]->S.insert(id);
+		insert(word, cur->next[c], i+1, n, id);
+		return;
+	}
+
+	// search operation
+	unordered_set<int> search(string& prefix){
+		TrieNode* cur = root;
+		int n = prefix.size();
+		for(int i=0 ; i<n ; i++){
+			int c = prefix[i] - 'a';
+			if(!cur->next[c]) return {};
+			cur = cur->next[c];
+		}
+		return cur->S;
+	}
+
+private:
+	TrieNode* root = new TrieNode("");
+};
+
+//////////////////////////////////////////////////////////////////////// 
+// Data info
+////////////////////////////////////////////////////////////////////////
+
 int total;
 unordered_map<int, string> TITLE;
 unordered_map<int, unordered_set<string>> words;
 // matches
 unordered_map<string, unordered_set<int>> exact;
+unordered_map<string, unordered_set<int>> prefix;
 
 //////////////////////////////////////////////////////////////////////// 
 // Exact search
@@ -23,17 +84,21 @@ unordered_map<string, unordered_set<int>> exact;
 unordered_set<int> exact_search(string& target){
 
 	// check history
-	if(exact.find(target) == exact.end()){
+	if(exact.find(target) != exact.end()) return exact[target];
+	return {};
+}
 
-		// search through the map
-		unordered_set<int> temp;
-		for(int i=0 ; i<total ; i++){
-			if(words[i].find(target) != words[i].end()) temp.insert(i);
-		}
-		exact.emplace(target, temp);
-	}
+//////////////////////////////////////////////////////////////////////// 
+// Prefix search
+////////////////////////////////////////////////////////////////////////
 
-	return exact[target];
+unordered_set<int> prefix_search(string& target, Trie& t){
+
+	// check history
+	if(prefix.find(target) != prefix.end()) return prefix[target];
+	unordered_set<int> temp = t.search(target);
+	prefix.emplace(target, temp);
+	return temp;
 }
 
 //////////////////////////////////////////////////////////////////////// 
@@ -80,6 +145,9 @@ vector<string> split(const string& str, const string& delim) {
 
 int main(int argc, char *argv[])
 {
+	// TIMER
+	clock_t start, end;
+	start = clock();
 
     // INPUT :
 	// 1. data directory in data folder
@@ -99,9 +167,12 @@ int main(int argc, char *argv[])
 	// collect data
 	int data_id = 0;
 
+	// assign a trie structure
+	Trie T;
+
 	while(1){
 		// make string
-		string path = data_dir + to_string(data_id) + ".txt";
+		string path = data_dir + to_string(data_id) + FILE_EXTENSION;
 
 		// from data_dir get file ....
 		// eg : use 0.txt in data directory
@@ -122,6 +193,9 @@ int main(int argc, char *argv[])
 
 		for(auto &word : title){
 			temp.insert(word);
+			exact[word].insert(data_id);
+			int n = word.size();
+			if(isalpha(word[0])) T.insert(word, T.getRoot(), 0, n, data_id);
 		}
 
 		// GET CONTENT LINE BY LINE
@@ -135,6 +209,9 @@ int main(int argc, char *argv[])
 
 			for(auto &word : content){
 				temp.insert(word);
+				exact[word].insert(data_id);
+				int n = word.size();
+				if(isalpha(word[0])) T.insert(word, T.getRoot(), 0, n, data_id);
 			}
 			//......
 		}
@@ -149,17 +226,20 @@ int main(int argc, char *argv[])
 
 	total = data_id;
 
-	// query
-	string path = query + ".txt", request;
+	// query for test
+	string path = query + FILE_EXTENSION, request;
 	fi.open(path, ios::in);
 	while(getline(fi, request)){
-		unordered_set<int> res = exact_search(request);
+		unordered_set<int> res = prefix_search(request, T);
 		for(auto &id : res){
 			cout << TITLE[id] << endl;
 		}
 		cout << "======================" << endl;
 	}
 	fi.close();
+
+	end = clock();
+	cout << (double)(end - start) / 1000 << endl;
 }
 
 

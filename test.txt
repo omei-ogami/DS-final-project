@@ -1,3 +1,10 @@
-result
-special
-result
+st
+auto
+des
+pre
+comp
+quan
+color
+pat
+algo
+num
