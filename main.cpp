@@ -2,17 +2,21 @@
 #include<fstream>
 #include<string>
 #include<cstring>
+#include<algorithm>
 #include<vector>
 #include<unordered_map>
 #include<unordered_set>
 #include<iostream>
-#include<time.h>
+#include<chrono>
 
 using namespace std;
 
 //////////////////////////////////////////////////////////////////////// 
 // Definition of Trie
 ////////////////////////////////////////////////////////////////////////
+
+string prefix_word = "";
+string processing_word = "";
 
 // trie node
 struct TrieNode{
@@ -21,6 +25,7 @@ struct TrieNode{
 	unordered_set<int> S = {};
 	bool isWord = false;
 
+	TrieNode() {}
 	TrieNode(string prefix) : prefix(prefix) {}
 };
 
@@ -38,15 +43,16 @@ public:
 	}
 
 	// insert operation
-	void insert(string& word, TrieNode* cur, int i, int n, int id){
+	void insert(TrieNode* cur, int i, int n, int id){
 		if(i == n) return;
-		int c = word[i] - 'a';
+		prefix_word += processing_word[i];
+		int c = processing_word[i] - 'a';
 		if(!cur->next[c]){
-			cur->next[c] = new TrieNode(word.substr(0, i+1));
+			cur->next[c] = new TrieNode(prefix_word);
 			cur->next[c]->isWord = (i == n-1)? true : false;
 		}
 		cur->next[c]->S.insert(id);
-		insert(word, cur->next[c], i+1, n, id);
+		insert(cur->next[c], i+1, n, id);
 		return;
 	}
 
@@ -63,7 +69,7 @@ public:
 	}
 
 private:
-	TrieNode* root = new TrieNode("");
+	TrieNode* root = new TrieNode();
 };
 
 //////////////////////////////////////////////////////////////////////// 
@@ -146,8 +152,7 @@ vector<string> split(const string& str, const string& delim) {
 int main(int argc, char *argv[])
 {
 	// TIMER
-	clock_t start, end;
-	start = clock();
+	auto begin = std::chrono::high_resolution_clock::now();
 
     // INPUT :
 	// 1. data directory in data folder
@@ -193,9 +198,6 @@ int main(int argc, char *argv[])
 
 		for(auto &word : title){
 			temp.insert(word);
-			exact[word].insert(data_id);
-			int n = word.size();
-			if(isalpha(word[0])) T.insert(word, T.getRoot(), 0, n, data_id);
 		}
 
 		// GET CONTENT LINE BY LINE
@@ -209,11 +211,15 @@ int main(int argc, char *argv[])
 
 			for(auto &word : content){
 				temp.insert(word);
-				exact[word].insert(data_id);
-				int n = word.size();
-				if(isalpha(word[0])) T.insert(word, T.getRoot(), 0, n, data_id);
 			}
-			//......
+		}
+
+		for(auto it=temp.begin() ; it!=temp.end() ; it++){
+			processing_word = *it;
+			int n = (processing_word).size();
+			exact[processing_word].insert(data_id);
+			T.insert(T.getRoot(), 0, n, data_id);
+			prefix_word.clear();
 		}
 
 		// add the data into words map
@@ -238,8 +244,9 @@ int main(int argc, char *argv[])
 	}
 	fi.close();
 
-	end = clock();
-	cout << (double)(end - start) / 1000 << endl;
+	auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+	printf("Time measured: %.3f seconds.\n", elapsed.count() * 1e-9);
 }
 
 
@@ -253,4 +260,5 @@ int main(int argc, char *argv[])
 
 //////////////////////////////////////////////////////////
 
-
+// To complile the file use the below command
+// g++ -std=c++17 -O2 -o main main.cpp
