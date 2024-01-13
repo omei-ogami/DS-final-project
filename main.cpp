@@ -15,18 +15,15 @@ using namespace std;
 // Definition of Trie
 ////////////////////////////////////////////////////////////////////////
 
-string prefix_word = "";
 string processing_word = "";
 
 // trie node
 struct TrieNode{
-	string prefix = "";
 	vector<TrieNode*> next = std::vector<TrieNode*>(26, nullptr);
 	unordered_set<int> S = {};
 	bool isWord = false;
 
 	TrieNode() {}
-	TrieNode(string prefix) : prefix(prefix) {}
 };
 
 // class for trie
@@ -43,17 +40,16 @@ public:
 	}
 
 	// insert operation
-	void insert(TrieNode* cur, int i, int n, int id){
-		if(i == n) return;
-		prefix_word += processing_word[i];
-		int c = processing_word[i] - 'a';
-		if(!cur->next[c]){
-			cur->next[c] = new TrieNode(prefix_word);
-			cur->next[c]->isWord = (i == n-1)? true : false;
+	void insert(string& word, int id){
+		int n = word.size();
+		TrieNode* cur = root;
+		for(int i=0 ; i<n ; i++){
+			int c = word[i] - 'a';
+			if(!cur->next[c]) cur->next[c] = new TrieNode();
+			cur = cur->next[c];
+			cur->S.insert(id);
+			cur->isWord = (i == n-1)? true : false;
 		}
-		cur->next[c]->S.insert(id);
-		insert(cur->next[c], i+1, n, id);
-		return;
 	}
 
 	// search operation
@@ -78,10 +74,11 @@ private:
 
 int total;
 unordered_map<int, string> TITLE;
-unordered_map<int, unordered_set<string>> words;
+unordered_set<string> words;
 // matches
 unordered_map<string, unordered_set<int>> exact;
 unordered_map<string, unordered_set<int>> prefix;
+unordered_map<string, unordered_set<int>> suffix;
 
 //////////////////////////////////////////////////////////////////////// 
 // Exact search
@@ -104,6 +101,19 @@ unordered_set<int> prefix_search(string& target, Trie& t){
 	if(prefix.find(target) != prefix.end()) return prefix[target];
 	unordered_set<int> temp = t.search(target);
 	prefix.emplace(target, temp);
+	return temp;
+}
+
+//////////////////////////////////////////////////////////////////////// 
+// Suffix search
+////////////////////////////////////////////////////////////////////////
+
+unordered_set<int> suffix_search(string& target, Trie& t){
+
+	// check history
+	if(suffix.find(target) != suffix.end()) return suffix[target];
+	unordered_set<int> temp = t.search(target);
+	suffix.emplace(target, temp);
 	return temp;
 }
 
@@ -151,6 +161,8 @@ vector<string> split(const string& str, const string& delim) {
 
 int main(int argc, char *argv[])
 {
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
 	// TIMER
 	auto begin = std::chrono::high_resolution_clock::now();
 
@@ -173,7 +185,7 @@ int main(int argc, char *argv[])
 	int data_id = 0;
 
 	// assign a trie structure
-	Trie T;
+	Trie prefix_trie, suffix_trie;
 
 	while(1){
 		// make string
@@ -214,16 +226,12 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		for(auto it=temp.begin() ; it!=temp.end() ; it++){
-			processing_word = *it;
-			int n = (processing_word).size();
-			exact[processing_word].insert(data_id);
-			T.insert(T.getRoot(), 0, n, data_id);
-			prefix_word.clear();
+		for(auto word : temp){
+			exact[word].insert(data_id);
+			prefix_trie.insert(word, data_id);
+			reverse(word.begin(), word.end());
+			suffix_trie.insert(word, data_id);
 		}
-
-		// add the data into words map
-		words.emplace(data_id, temp);
 
 		// CLOSE FILE
 		fi.close();
@@ -233,10 +241,11 @@ int main(int argc, char *argv[])
 	total = data_id;
 
 	// query for test
-	string path = query + FILE_EXTENSION, request;
+	string path = query, request;
 	fi.open(path, ios::in);
 	while(getline(fi, request)){
-		unordered_set<int> res = prefix_search(request, T);
+		reverse(request.begin(), request.end());
+		unordered_set<int> res = suffix_search(request, suffix_trie);
 		for(auto &id : res){
 			cout << TITLE[id] << endl;
 		}
@@ -261,4 +270,9 @@ int main(int argc, char *argv[])
 //////////////////////////////////////////////////////////
 
 // To complile the file use the below command
-// g++ -std=c++17 -O2 -o main main.cpp
+// g++ -std=c++17 -O2 -o essay_search ./main.cpp
+// ./essay_search data-more test.txt Q1
+// or
+// g++ -std=c++17 -O2 -o essay-search ./*.cpp
+// ./essay-search.exe data-more test.txt Q1
+

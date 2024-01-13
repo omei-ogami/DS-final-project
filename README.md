@@ -4,7 +4,7 @@ TODO
 - [x] Parsing
 - [x] Exact Search
 - [x] Prefix Search
-- [ ] Suffix Search
+- [x] Suffix Search
 - [ ] Wildcard Search
 - [ ] Set operations
 - [ ] Output
@@ -22,6 +22,6 @@ Note
 Debug
 ---
 
-* 
+* Implement suffix tree if there's enough time
 
 Update: 1/12 3:10

@@ -1,10 +1,7 @@
-st
-auto
-des
-pre
-comp
-quan
-color
-pat
-algo
-num
+paper
+tial
+toms
+compression
+then
+out
+paths
