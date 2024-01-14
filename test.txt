@@ -1,7 +1,4 @@
-paper
-tial
-toms
-compression
-then
-out
-paths
+s*tion
+*tion
+s*tion*
+*tion*

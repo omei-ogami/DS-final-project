@@ -12,15 +12,30 @@
 using namespace std;
 
 //////////////////////////////////////////////////////////////////////// 
+// Data info
+////////////////////////////////////////////////////////////////////////
+
+int total;
+unordered_map<int, string> TITLE;
+unordered_set<string> words;
+// matches
+unordered_map<string, unordered_set<int>> exact;
+unordered_map<string, unordered_set<int>> prefix;
+unordered_map<string, unordered_set<int>> suffix;
+unordered_map<string, unordered_set<int>> wildcard;
+
+//////////////////////////////////////////////////////////////////////// 
 // Definition of Trie
 ////////////////////////////////////////////////////////////////////////
 
 string processing_word = "";
+unordered_set<int> ans;
 
 // trie node
 struct TrieNode{
-	vector<TrieNode*> next = std::vector<TrieNode*>(26, nullptr);
+	unordered_map<char, TrieNode*> next;
 	unordered_set<int> S = {};
+	string prefix = "";
 	bool isWord = false;
 
 	TrieNode() {}
@@ -44,8 +59,11 @@ public:
 		int n = word.size();
 		TrieNode* cur = root;
 		for(int i=0 ; i<n ; i++){
-			int c = word[i] - 'a';
-			if(!cur->next[c]) cur->next[c] = new TrieNode();
+			char c = word[i];
+			if(cur->next.find(c) == cur->next.end()){
+				cur->next[c] = new TrieNode();
+				cur->next[c]->prefix = cur->prefix + c;
+			}
 			cur = cur->next[c];
 			cur->S.insert(id);
 			cur->isWord = (i == n-1)? true : false;
@@ -57,28 +75,40 @@ public:
 		TrieNode* cur = root;
 		int n = prefix.size();
 		for(int i=0 ; i<n ; i++){
-			int c = prefix[i] - 'a';
-			if(!cur->next[c]) return {};
+			char c = prefix[i];
+			if(cur->next.find(c) == cur->next.end()) return {};
 			cur = cur->next[c];
 		}
 		return cur->S;
 	}
 
+	// match operation
+	void match(string& patterm, TrieNode* cur, int i, int n){
+		if(i == n){
+			ans.merge(exact[cur->prefix]);
+			return;
+		}
+		if(patterm[i] == '*'){
+			if(cur->next.find(patterm[i+1]) != cur->next.end()){
+				match(patterm, cur, i+1, n);
+			}
+			for(auto nxt : cur->next){
+				match(patterm, nxt.second, i, n);
+			}
+		}
+		else{
+			if(i == n-2 && patterm[n-1] == '*'){
+				ans.merge(cur->next[patterm[i]]->S);
+			}
+			else if(cur->next.find(patterm[i]) != cur->next.end()){
+				match(patterm, cur->next[patterm[i]], i+1, n);
+			}
+		}
+	}
+
 private:
 	TrieNode* root = new TrieNode();
 };
-
-//////////////////////////////////////////////////////////////////////// 
-// Data info
-////////////////////////////////////////////////////////////////////////
-
-int total;
-unordered_map<int, string> TITLE;
-unordered_set<string> words;
-// matches
-unordered_map<string, unordered_set<int>> exact;
-unordered_map<string, unordered_set<int>> prefix;
-unordered_map<string, unordered_set<int>> suffix;
 
 //////////////////////////////////////////////////////////////////////// 
 // Exact search
@@ -115,6 +145,21 @@ unordered_set<int> suffix_search(string& target, Trie& t){
 	unordered_set<int> temp = t.search(target);
 	suffix.emplace(target, temp);
 	return temp;
+}
+
+//////////////////////////////////////////////////////////////////////// 
+// Suffix search
+////////////////////////////////////////////////////////////////////////
+
+unordered_set<int> wildcard_search(string& target, Trie& t){
+
+	// check history
+	if(wildcard.find(target) != wildcard.end()) return wildcard[target];
+	ans.clear();
+	int n = target.size();
+	t.match(target, t.getRoot(), 0, n);
+	wildcard.emplace(target, ans);
+	return ans;
 }
 
 //////////////////////////////////////////////////////////////////////// 
@@ -244,8 +289,18 @@ int main(int argc, char *argv[])
 	string path = query, request;
 	fi.open(path, ios::in);
 	while(getline(fi, request)){
-		reverse(request.begin(), request.end());
-		unordered_set<int> res = suffix_search(request, suffix_trie);
+		cout << request << endl;
+		unordered_set<int> res;
+		if(request[0] != '*'){
+			res = wildcard_search(request, prefix_trie);
+		}
+		else if(request.back() != '*'){
+			reverse(request.begin(), request.end());
+			res = wildcard_search(request, suffix_trie);
+		}
+		else{
+			res = wildcard_search(request, prefix_trie);
+		}
 		for(auto &id : res){
 			cout << TITLE[id] << endl;
 		}
@@ -271,7 +326,7 @@ int main(int argc, char *argv[])
 
 // To complile the file use the below command
 // g++ -std=c++17 -O2 -o essay_search ./main.cpp
-// ./essay_search data-more test.txt Q1
+// ./essay_search sample test.txt Q1
 // or
 // g++ -std=c++17 -O2 -o essay-search ./*.cpp
 // ./essay-search.exe data-more test.txt Q1
