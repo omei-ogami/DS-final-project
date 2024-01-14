@@ -4,6 +4,7 @@
 #include<cstring>
 #include<algorithm>
 #include<vector>
+#include<queue>
 #include<unordered_map>
 #include<unordered_set>
 #include<iostream>
@@ -19,11 +20,13 @@ string processing_word = "";
 
 // trie node
 struct TrieNode{
-	vector<TrieNode*> next = std::vector<TrieNode*>(26, nullptr);
+	unordered_map<char, TrieNode*> next;
 	unordered_set<int> S = {};
+	int index;
 	bool isWord = false;
+	TrieNode* parent = nullptr, *fail = nullptr;
 
-	TrieNode() {}
+	TrieNode(int index) : index(index) {}
 };
 
 // class for trie
@@ -34,18 +37,16 @@ public:
 
 	~Trie() {}
 
-	// get root
-	TrieNode* getRoot(){
-		return root;
-	}
-
 	// insert operation
 	void insert(string& word, int id){
 		int n = word.size();
 		TrieNode* cur = root;
 		for(int i=0 ; i<n ; i++){
-			int c = word[i] - 'a';
-			if(!cur->next[c]) cur->next[c] = new TrieNode();
+			char c = word[i];
+			if(cur->next.find(c) == cur->next.end()){
+				cur->next[c] = new TrieNode(i);
+				cur->next[c]->parent = cur;
+			}
 			cur = cur->next[c];
 			cur->S.insert(id);
 			cur->isWord = (i == n-1)? true : false;
@@ -57,15 +58,47 @@ public:
 		TrieNode* cur = root;
 		int n = prefix.size();
 		for(int i=0 ; i<n ; i++){
-			int c = prefix[i] - 'a';
-			if(!cur->next[c]) return {};
+			char c = prefix[i];
+			if(cur->next.find(c) == cur->next.end()) return {};
 			cur = cur->next[c];
 		}
 		return cur->S;
 	}
 
+	// AC-Automaton
+	void build(){
+		queue<pair<TrieNode*, char>> Q;
+		for(auto i : root->next){
+			Q.push({i.second, i.first});
+		}
+		while(!Q.empty()){
+			TrieNode* node = Q.front().first;
+			char c = Q.front().second;
+			if(node->parent == root) node->fail = root;
+			else{
+				// cur = fail pointer of parent
+				auto cur = node->parent->fail;
+				node->fail = root;
+				while(1){
+					if(cur->next.find(c) != cur->next.end()){
+						node->fail = cur->next[c];
+						break;
+					}
+					else if(cur == root) break;
+					cur = cur->fail;
+				}
+			}
+			for(auto i : node->next){
+				Q.push({i.second, i.first});
+			}
+			Q.pop();
+		}
+	}
+
+	// 
+
 private:
-	TrieNode* root = new TrieNode();
+	TrieNode* root = new TrieNode(-1);
 };
 
 //////////////////////////////////////////////////////////////////////// 
@@ -238,6 +271,8 @@ int main(int argc, char *argv[])
 		data_id++;
 	}
 
+	prefix_trie.build();
+	suffix_trie.build();
 	total = data_id;
 
 	// query for test
