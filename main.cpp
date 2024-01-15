@@ -6,6 +6,7 @@
 #include<vector>
 #include<unordered_map>
 #include<unordered_set>
+#include<set>
 #include<iostream>
 #include<chrono>
 
@@ -16,6 +17,7 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////
 
 int total;
+// infos
 unordered_map<int, string> TITLE;
 unordered_set<string> words;
 // matches
@@ -121,6 +123,9 @@ unordered_set<int> exact_search(string& target){
 	return {};
 }
 
+// assign trie structures
+Trie prefix_trie, suffix_trie;
+
 //////////////////////////////////////////////////////////////////////// 
 // Prefix search
 ////////////////////////////////////////////////////////////////////////
@@ -201,6 +206,50 @@ vector<string> split(const string& str, const string& delim) {
 }
 
 //////////////////////////////////////////////////////////////////////// 
+// set operations & request
+////////////////////////////////////////////////////////////////////////
+
+unordered_set<int> solve(string& s){
+	int n = s.size();
+	string res = s.substr(1, n-2);
+	if(s[0] == '\"') return exact_search(res);
+	else if(s[0] == '*') {\
+		reverse(res.begin(), res.end());
+		return suffix_search(res, suffix_trie);
+	}
+	else if(s[0] == '<'){
+		if(res[0] != '*') return wildcard_search(res, prefix_trie);
+		else if(res.back() != '*'){
+			reverse(res.begin(), res.end());
+			return wildcard_search(res, suffix_trie);
+		}
+		else return wildcard_search(res, prefix_trie); 
+	}
+	else return prefix_search(s, prefix_trie);
+}
+
+void opAND(unordered_set<int>& A, unordered_set<int>& B){
+	for(auto i : A){
+		if(B.find(i) == B.end()) A.erase(i);
+	}
+	return;
+}
+
+void opOR(unordered_set<int>& A, unordered_set<int>& B){
+	for(auto i : B){
+		A.insert(i);
+	}
+	return;
+}
+
+void opEXCLUDE(unordered_set<int>& A, unordered_set<int>& B){
+	for(auto i : B){
+		A.erase(i);
+	}
+	return;
+}
+
+//////////////////////////////////////////////////////////////////////// 
 // main function
 ////////////////////////////////////////////////////////////////////////
 
@@ -223,14 +272,11 @@ int main(int argc, char *argv[])
 	// Read File & Parser Example
 
 	string file, title_name, tmp;
-	fstream fi;
+	fstream fi, ofi;
 	vector<string> tmp_string;
 
 	// collect data
 	int data_id = 0;
-
-	// assign a trie structure
-	Trie prefix_trie, suffix_trie;
 
 	while(1){
 		// make string
@@ -286,27 +332,38 @@ int main(int argc, char *argv[])
 	total = data_id;
 
 	// query for test
+	int idx = 0;
 	string path = query, request;
 	fi.open(path, ios::in);
+	ofi.open(output, ios::out);
 	while(getline(fi, request)){
-		cout << request << endl;
-		unordered_set<int> res;
-		if(request[0] != '*'){
-			res = wildcard_search(request, prefix_trie);
+		cout << idx << endl;
+		vector<string> req = split(request, " ");
+		unordered_set<int> A = solve(req[0]);
+		//cout << "A: ";
+		//for(auto i : A) cout << i << " ";
+		//cout << endl;
+		for(int i=1 ; i<req.size() ; i+=2){
+			auto B = solve(req[i+1]);
+			//cout << "B: ";
+			//for(auto i : B) cout << i << " ";
+			//cout << endl;
+			if(req[i] == "+") opAND(A, B);
+			else if(req[i] == "/") opOR(A, B);
+			else if(req[i] == "-") opEXCLUDE(A, B);
+			//cout << "A: ";
+			//for(auto i : A) cout << i << " ";
+			//cout << endl;
 		}
-		else if(request.back() != '*'){
-			reverse(request.begin(), request.end());
-			res = wildcard_search(request, suffix_trie);
-		}
-		else{
-			res = wildcard_search(request, prefix_trie);
-		}
+		set<int> res(A.begin(), A.end());
+		if(A.empty()) ofi << "Not Found!" << endl;
 		for(auto &id : res){
-			cout << TITLE[id] << endl;
+			ofi << TITLE[id] << endl;
 		}
-		cout << "======================" << endl;
+		idx++;
 	}
 	fi.close();
+	ofi.close();
 
 	auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
@@ -326,7 +383,8 @@ int main(int argc, char *argv[])
 
 // To complile the file use the below command
 // g++ -std=c++17 -O2 -o essay_search ./main.cpp
-// ./essay_search sample test.txt Q1
+// ./essay_search data-more query_more.txt Q2.txt
+// ./essay_search data-more test.txt Q3.txt
 // or
 // g++ -std=c++17 -O2 -o essay-search ./*.cpp
 // ./essay-search.exe data-more test.txt Q1
