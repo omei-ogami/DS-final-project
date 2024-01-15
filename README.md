@@ -8,7 +8,7 @@ TODO
 - [x] Wildcard Search
 - [x] Set operations
 - [x] Output
-- [ ] Optimaization (optional)
+- [x] Optimaization (optional)
 
 ---
 
@@ -18,6 +18,7 @@ Note
 * Use the command below to compile
 `g++ -std=c++17 -O2 -o main main.cpp`
 * All complete
+* Optimize -> 199/1000 test (approximately 0.36 sec)
 
 ---
 
@@ -28,4 +29,4 @@ Debug
 * terminating of wildcard 
 * The testcase 166 and 184 will fail
  
-Update: 1/16 1:30
+Update: 1/16 2:40

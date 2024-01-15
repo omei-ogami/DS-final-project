@@ -16,12 +16,36 @@ using namespace std;
 // Data info
 ////////////////////////////////////////////////////////////////////////
 
-int longest = 0;
 // infos
 unordered_map<int, string> TITLE;
 unordered_set<string> words;
 // matches
 unordered_map<string, unordered_set<int>> exact;
+
+//////////////////////////////////////////////////////////////////////// 
+// set operations
+////////////////////////////////////////////////////////////////////////
+
+void opAND(unordered_set<int>& A, unordered_set<int>& B){
+	for(auto i : A){
+		if(B.find(i) == B.end()) A.erase(i);
+	}
+	return;
+}
+
+void opOR(unordered_set<int>& A, unordered_set<int>& B){
+	for(auto i : B){
+		A.insert(i);
+	}
+	return;
+}
+
+void opEXCLUDE(unordered_set<int>& A, unordered_set<int>& B){
+	for(auto i : B){
+		A.erase(i);
+	}
+	return;
+}
 
 //////////////////////////////////////////////////////////////////////// 
 // Definition of Trie 
@@ -55,9 +79,11 @@ public:
 	}
 
 	// insert operation
-	void insert(string& word, int id){
+	void insert(string& word, bool sfx){
 		int n = word.size();
 		TrieNode* cur = root;
+		string s = word;
+		if(sfx) reverse(s.begin(), s.end());
 		for(int i=0 ; i<n ; i++){
 			char c = word[i];
 			if(cur->next.find(c) == cur->next.end()){
@@ -66,8 +92,8 @@ public:
 			}
 			cur = cur->next[c];
 			if(n > cur->longest_len) cur->longest_len = n;
-			cur->S.insert(id);
 			cur->isWord = (i == n-1)? true : false;
+			opOR(cur->S, exact[s]);
 		}
 	}
 
@@ -85,12 +111,14 @@ public:
 
 	// match operation
 	void match(string& patterm, TrieNode* cur, int i, int reg_len, int n){
+		/*
 		if(i + reg_len > cur->longest_len && cur != root){
 			//cout << "STOP!" << endl;
 			return;
-		}
+		}*/
 		if(i == n){
-			ans.merge(exact[cur->prefix]);
+			//ans.merge(exact[cur->prefix]);
+			opOR(ans, exact[cur->prefix]);
 			return;
 		}
 		if(patterm[i] == '*'){
@@ -104,7 +132,8 @@ public:
 		else{
 			if(i == n-2 && patterm[n-1] == '*'){
 				if(cur->next.find(patterm[i]) != cur->next.end())
-                    ans.merge(cur->next[patterm[i]]->S);
+					opOR(ans, cur->next[patterm[i]]->S);
+                    //ans.merge(cur->next[patterm[i]]->S);
 			}
 			else if(cur->next.find(patterm[i]) != cur->next.end()){
 				match(patterm, cur->next[patterm[i]], i+1, reg_len-1, n);
@@ -116,12 +145,8 @@ private:
 	TrieNode* root = new TrieNode();
 };
 
-struct MatchNode{
-	TrieNode* node = nullptr;
-	int i = -1, reg_len = -1;
-
-	MatchNode(TrieNode* cur, int i, int reg_len) : node(cur), i(i), reg_len(reg_len) {}
-};
+// assign trie structures
+Trie prefix_trie, suffix_trie;
 
 //////////////////////////////////////////////////////////////////////// 
 // Exact search
@@ -133,9 +158,6 @@ unordered_set<int> exact_search(string& target){
 	if(exact.find(target) != exact.end()) return exact[target];
 	return {};
 }
-
-// assign trie structures
-Trie prefix_trie, suffix_trie;
 
 //////////////////////////////////////////////////////////////////////// 
 // Prefix search
@@ -173,6 +195,29 @@ unordered_set<int> wildcard_search(string& target, Trie& t){
 	}
 	t.match(target, t.getRoot(), 0, reg_len, n);
 	return ans;
+}
+
+//////////////////////////////////////////////////////////////////////// 
+// request solving
+////////////////////////////////////////////////////////////////////////
+
+unordered_set<int> solve(string& s){
+	int n = s.size();
+	string res = s.substr(1, n-2);
+	if(s[0] == '\"') return exact_search(res);
+	else if(s[0] == '*') {\
+		reverse(res.begin(), res.end());
+		return suffix_search(res, suffix_trie);
+	}
+	else if(s[0] == '<'){
+		if(res[0] != '*') return wildcard_search(res, prefix_trie);
+		if(res.back() != '*'){
+			reverse(res.begin(), res.end());
+			return wildcard_search(res, suffix_trie);
+		}
+		else return wildcard_search(res, prefix_trie); 
+	}
+	else return prefix_search(s, prefix_trie);
 }
 
 //////////////////////////////////////////////////////////////////////// 
@@ -214,54 +259,10 @@ vector<string> split(const string& str, const string& delim) {
 }
 
 //////////////////////////////////////////////////////////////////////// 
-// set operations & request
-////////////////////////////////////////////////////////////////////////
-
-unordered_set<int> solve(string& s){
-	int n = s.size();
-	string res = s.substr(1, n-2);
-	if(s[0] == '\"') return exact_search(res);
-	else if(s[0] == '*') {\
-		reverse(res.begin(), res.end());
-		return suffix_search(res, suffix_trie);
-	}
-	else if(s[0] == '<'){
-		if(res[0] != '*') return wildcard_search(res, prefix_trie);
-		if(res.back() != '*'){
-			reverse(res.begin(), res.end());
-			return wildcard_search(res, suffix_trie);
-		}
-		else return wildcard_search(res, prefix_trie); 
-	}
-	else return prefix_search(s, prefix_trie);
-}
-
-void opAND(unordered_set<int>& A, unordered_set<int>& B){
-	for(auto i : A){
-		if(B.find(i) == B.end()) A.erase(i);
-	}
-	return;
-}
-
-void opOR(unordered_set<int>& A, unordered_set<int>& B){
-	for(auto i : B){
-		A.insert(i);
-	}
-	return;
-}
-
-void opEXCLUDE(unordered_set<int>& A, unordered_set<int>& B){
-	for(auto i : B){
-		A.erase(i);
-	}
-	return;
-}
-
-//////////////////////////////////////////////////////////////////////// 
 // main function
 ////////////////////////////////////////////////////////////////////////
 
-int main()
+int main(int argc, char *argv[])
 {
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
@@ -273,9 +274,9 @@ int main()
 	// 2. number of txt files
 	// 3. output route
 
-    string data_dir = "data-more" + string("/");
-	string query = "test.txt";
-	string output = "Q1.txt";
+    string data_dir = argv[1] + string("/");
+	string query = string(argv[2]);
+	string output = string(argv[3]);
 
 	// Read File & Parser Example
 
@@ -308,7 +309,8 @@ int main()
 		vector<string> title = word_parse(tmp_string);
 
 		for(auto &word : title){
-			temp.insert(word);
+			words.insert(word);
+			exact[word].insert(data_id);
 		}
 
 		// GET CONTENT LINE BY LINE
@@ -321,15 +323,9 @@ int main()
 			vector<string> content = word_parse(tmp_string);
 
 			for(auto &word : content){
-				temp.insert(word);
+				words.insert(word);
+				exact[word].insert(data_id);
 			}
-		}
-
-		for(auto word : temp){
-			exact[word].insert(data_id);
-			prefix_trie.insert(word, data_id);
-			reverse(word.begin(), word.end());
-			suffix_trie.insert(word, data_id);
 		}
 
 		// CLOSE FILE
@@ -337,44 +333,32 @@ int main()
 		data_id++;
 	}
 
+	for(auto i : words){
+		prefix_trie.insert(i, false);
+		reverse(i.begin(), i.end());
+		suffix_trie.insert(i, true);
+	}
+
 	// query for test
-	int idx = 0;
 	string path = query, request;
 	fi.open(path, ios::in);
 	ofi.open(output, ios::out);
+	unordered_set<int> A, B;
 	while(getline(fi, request)){
 		vector<string> req = split(request, " ");
-		unordered_set<int> A = solve(req[0]);
-		// 165
-		if(idx == 165){
-			cout << req[0] << endl;
-			cout << "A: ";
-			for(auto i : A) cout << i << " ";
-			cout << endl;
-		}
 		A = solve(req[0]);
 		for(int i=1 ; i<req.size() ; i+=2){
 			auto B = solve(req[i+1]);
-			if(idx == 165){
-				cout << "B: ";
-				for(auto i : B) cout << i << " ";
-				cout << endl;
-			}
 			if(req[i] == "+") opAND(A, B);
 			else if(req[i] == "/") opOR(A, B);
 			else if(req[i] == "-") opEXCLUDE(A, B);
-			if(idx == 165){
-				cout << "A: ";
-				for(auto i : A) cout << i << " ";
-				cout << endl;
-			}
 		}
 		set<int> res(A.begin(), A.end());
-		if(res.empty()) ofi << "Not Found!" << endl;
+		if(A.empty()) ofi << "Not Found!" << endl;
 		for(auto &id : res){
 			ofi << TITLE[id] << endl;
 		}
-		idx++;
+		A.clear();
 	}
 	fi.close();
 	ofi.close();
@@ -397,7 +381,7 @@ int main()
 
 // To complile the file use the below command
 // g++ -std=c++17 -O2 -o tA ./A.cpp
-// ./tA data-more query_more.txt Q4.txt
+// ./tA data-more query_more.txt Q1.txt
 // ./tA data-more test.txt Q3.txt
 // or
 // g++ -std=c++17 -O2 -o essay-search ./*.cpp

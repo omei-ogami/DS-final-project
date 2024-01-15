@@ -79,9 +79,11 @@ public:
 	}
 
 	// insert operation
-	void insert(string& word, int id){
+	void insert(string& word, bool sfx){
 		int n = word.size();
 		TrieNode* cur = root;
+		string s = word;
+		if(sfx) reverse(s.begin(), s.end());
 		for(int i=0 ; i<n ; i++){
 			char c = word[i];
 			if(cur->next.find(c) == cur->next.end()){
@@ -90,8 +92,8 @@ public:
 			}
 			cur = cur->next[c];
 			if(n > cur->longest_len) cur->longest_len = n;
-			cur->S.insert(id);
 			cur->isWord = (i == n-1)? true : false;
+			opOR(cur->S, exact[s]);
 		}
 	}
 
@@ -307,7 +309,8 @@ int main(int argc, char *argv[])
 		vector<string> title = word_parse(tmp_string);
 
 		for(auto &word : title){
-			temp.insert(word);
+			words.insert(word);
+			exact[word].insert(data_id);
 		}
 
 		// GET CONTENT LINE BY LINE
@@ -320,20 +323,20 @@ int main(int argc, char *argv[])
 			vector<string> content = word_parse(tmp_string);
 
 			for(auto &word : content){
-				temp.insert(word);
+				words.insert(word);
+				exact[word].insert(data_id);
 			}
-		}
-
-		for(auto word : temp){
-			exact[word].insert(data_id);
-			prefix_trie.insert(word, data_id);
-			reverse(word.begin(), word.end());
-			suffix_trie.insert(word, data_id);
 		}
 
 		// CLOSE FILE
 		fi.close();
 		data_id++;
+	}
+
+	for(auto i : words){
+		prefix_trie.insert(i, false);
+		reverse(i.begin(), i.end());
+		suffix_trie.insert(i, true);
 	}
 
 	// query for test
