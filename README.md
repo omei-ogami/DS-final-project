@@ -14,7 +14,7 @@ TODO
 
 Note
 ---
-* Pass 199/1000 test (approximately 0.056 sec)
+* Pass 199/1000 test (approximately 0.556 sec)
 * Use the command below to compile
 `g++ -std=c++17 -O2 -o main main.cpp`
 * All complete
