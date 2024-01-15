@@ -85,11 +85,10 @@ public:
 
 	// match operation
 	void match(string& patterm, TrieNode* cur, int i, int reg_len, int n){
-		/*
 		if(i + reg_len > cur->longest_len && cur != root){
 			//cout << "STOP!" << endl;
 			return;
-		}*/
+		}
 		if(i == n){
 			ans.merge(exact[cur->prefix]);
 			return;
@@ -262,7 +261,7 @@ void opEXCLUDE(unordered_set<int>& A, unordered_set<int>& B){
 // main function
 ////////////////////////////////////////////////////////////////////////
 
-int main(int argc, char *argv[])
+int main()
 {
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
@@ -274,9 +273,9 @@ int main(int argc, char *argv[])
 	// 2. number of txt files
 	// 3. output route
 
-    string data_dir = argv[1] + string("/");
-	string query = string(argv[2]);
-	string output = string(argv[3]);
+    string data_dir = "data-more" + string("/");
+	string query = "test.txt";
+	string output = "Q1.txt";
 
 	// Read File & Parser Example
 
@@ -343,32 +342,38 @@ int main(int argc, char *argv[])
 	string path = query, request;
 	fi.open(path, ios::in);
 	ofi.open(output, ios::out);
-	unordered_set<int> A, B;
 	while(getline(fi, request)){
-		//cout << idx << endl;
 		vector<string> req = split(request, " ");
+		unordered_set<int> A = solve(req[0]);
+		// 165
+		if(idx == 165){
+			cout << req[0] << endl;
+			cout << "A: ";
+			for(auto i : A) cout << i << " ";
+			cout << endl;
+		}
 		A = solve(req[0]);
-		//cout << "A: ";
-		//for(auto i : A) cout << i << " ";
-		//cout << endl;
 		for(int i=1 ; i<req.size() ; i+=2){
 			auto B = solve(req[i+1]);
-			//cout << "B: ";
-			//for(auto i : B) cout << i << " ";
-			//cout << endl;
+			if(idx == 165){
+				cout << "B: ";
+				for(auto i : B) cout << i << " ";
+				cout << endl;
+			}
 			if(req[i] == "+") opAND(A, B);
 			else if(req[i] == "/") opOR(A, B);
 			else if(req[i] == "-") opEXCLUDE(A, B);
-			//cout << "A: ";
-			//for(auto i : A) cout << i << " ";
-			//cout << endl;
+			if(idx == 165){
+				cout << "A: ";
+				for(auto i : A) cout << i << " ";
+				cout << endl;
+			}
 		}
 		set<int> res(A.begin(), A.end());
-		if(A.empty()) ofi << "Not Found!" << endl;
+		if(res.empty()) ofi << "Not Found!" << endl;
 		for(auto &id : res){
 			ofi << TITLE[id] << endl;
 		}
-		A.clear();
 		idx++;
 	}
 	fi.close();
@@ -391,9 +396,9 @@ int main(int argc, char *argv[])
 //////////////////////////////////////////////////////////
 
 // To complile the file use the below command
-// g++ -std=c++17 -O2 -o essay_search ./main.cpp
-// ./essay_search data-more query_more.txt Q2.txt
-// ./essay_search data-more test.txt Q3.txt
+// g++ -std=c++17 -O2 -o tA ./A.cpp
+// ./tA data-more query_more.txt Q4.txt
+// ./tA data-more test.txt Q3.txt
 // or
 // g++ -std=c++17 -O2 -o essay-search ./*.cpp
 // ./essay-search.exe data-more test.txt Q1

@@ -6,7 +6,7 @@ TODO
 - [x] Prefix Search
 - [x] Suffix Search
 - [x] Wildcard Search
-- [ ] Set operations
+- [x] Set operations
 - [ ] Output
 
 ---
@@ -23,6 +23,7 @@ Debug
 ---
 
 * Implement suffix tree if there's enough time
-* terminating of wildcard
-
+* terminating of wildcard 
+* The testcase 166 and 184 will fail
+ 
 Update: 1/12 3:10
